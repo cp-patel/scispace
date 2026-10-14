@@ -80,3 +80,17 @@ def test_pdf_extract_and_clean():
 def test_broken_pdf_raises_pdf_error():
     with pytest.raises(PdfError):
         extract_text(b"%PDF-1.4 this is not really a pdf")
+
+
+def test_numbered_references_and_appendix_are_cut():
+    text = "1 Introduction\nintro text\n7 References\n[1] A. Author. A paper.\nAppendix A\nextra"
+    assert split_sections(text) == [("Introduction", "intro text")]
+    assert strip_back_matter("body\nA Appendix\nmore") == "body"
+    assert strip_back_matter("body\n8. Acknowledgments\nthanks") == "body"
+    assert strip_back_matter("body\nAppendix A\nproofs") == "body"
+    assert strip_back_matter("body\nReferences to prior work are common.") != "body"  # a sentence, not a heading
+
+
+def test_clean_text_drops_numeric_citations_but_keeps_intervals():
+    text = "Dense retrievers [14] beat BM25 [1, 3] on QA [2-5, 7\u20139]. Scores lie in [0, 1]."
+    assert clean_text(text) == "Dense retrievers beat BM25 on QA. Scores lie in [0, 1]."

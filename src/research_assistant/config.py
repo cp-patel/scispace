@@ -127,7 +127,7 @@ class Settings(BaseSettings):
     job_budget_usd: float = 10.0
     job_deadline_min: int = 30
     lease_seconds: int = 120
-    heartbeat_seconds: int = 30
+    heartbeat_seconds: float = 30.0
     max_attempts: int = 3
 
     algo: AlgoParams = Field(default_factory=AlgoParams)

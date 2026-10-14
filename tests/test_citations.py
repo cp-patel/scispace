@@ -48,3 +48,9 @@ def test_reference_and_bibtex_handle_missing_and_special_fields():
     assert r"Costs \& benefits of 100\% recall\_\{x\}" in bib
     assert "[1] Unknown authors (n.d.). Untitled." == reference_entry(1, {"id": "W2"})
     assert bibtex_entry({"id": "W2"}).startswith("@article{anonpaper,")
+
+
+def test_render_removes_citation_numbers_copied_from_sources():
+    card_paper, numbers = {"E1.2": "W1"}, {"W1": 1}
+    text = "Methods include query rewriting [14], reranking [16-18], fusion [3, 4], and Self-RAG [12–14] [E1.2]."
+    assert render_markers(text, card_paper, numbers) == "Methods include query rewriting, reranking, fusion, and Self-RAG [1]."

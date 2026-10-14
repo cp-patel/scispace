@@ -18,7 +18,9 @@ _NAMED = {
     "limitations",
 }
 _SKIP = {"abstract"}
-_STOP = {"references", "bibliography", "acknowledgments", "acknowledgements", "appendix"}
+# Back matter heading alone on a line, maybe numbered or lettered: "References", "7 References", "A Appendix", "Appendix B".
+_BACK_MATTER = re.compile(r"(?:(?:\d{1,2}|[A-Z])\.?\s+)?(?:references|bibliography|acknowledge?ments?|appendix|appendices)(?:\s+[A-Z0-9])?:?",
+                          re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -37,14 +39,14 @@ def heading(line: str) -> str | None:
         title = match.group(2).strip()
         return None if sum(ch.isdigit() for ch in title) > 3 else title  # table rows are digit-heavy
     name = s.rstrip(":").strip()
-    return name if name.lower() in _NAMED | _SKIP | _STOP else None
+    return name if name.lower() in _NAMED | _SKIP else None
 
 
 def strip_back_matter(text: str) -> str:
-    """Cut everything from the first References / Bibliography / Appendix heading onward."""
+    """Cut everything from the first References / Bibliography / Acknowledgments / Appendix heading onward."""
     lines = text.splitlines()
     for i, line in enumerate(lines):
-        if line.strip().rstrip(":").lower() in _STOP:
+        if _BACK_MATTER.fullmatch(line.strip()):
             return "\n".join(lines[:i])
     return text
 

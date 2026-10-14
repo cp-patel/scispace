@@ -34,9 +34,14 @@ class Worker:
 
     async def run_forever(self, poll_seconds: float = 2.0) -> None:
         while not self.deps.stopping.is_set():
-            await jobs.reap_expired(self.deps.pool, self.settings.max_attempts)
-            QUEUE_DEPTH.set(await jobs.queue_depth(self.deps.pool))
-            if not await self.run_one():
+            try:
+                await jobs.reap_expired(self.deps.pool, self.settings.max_attempts)
+                QUEUE_DEPTH.set(await jobs.queue_depth(self.deps.pool))
+                busy = await self.run_one()
+            except Exception:
+                log.exception("worker loop error; retrying after a pause")
+                busy = False
+            if not busy:
                 try:
                     await asyncio.wait_for(self.deps.stopping.wait(), timeout=poll_seconds)
                 except TimeoutError:
@@ -97,7 +102,12 @@ class Worker:
     async def _heartbeat(self, job_id: str) -> None:
         while True:
             await asyncio.sleep(self.settings.heartbeat_seconds)
-            if not await jobs.renew_lease(self.deps.pool, job_id, self.worker_id, self.settings.lease_seconds):
+            try:
+                renewed = await jobs.renew_lease(self.deps.pool, job_id, self.worker_id, self.settings.lease_seconds)
+            except Exception:
+                log.warning("lease renewal failed; trying again next beat", exc_info=True)
+                continue
+            if not renewed:
                 log.warning("could not renew the lease")
                 return
 

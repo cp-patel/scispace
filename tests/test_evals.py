@@ -36,3 +36,11 @@ async def test_eval_runs_on_a_fake_survey_and_writes_calibration():
     cal = calibration(rows, "offline", {"judge_rates": {"claude": {"sensitivity": 0.9, "specificity": 0.8, "kappa": 0.5}}})
     assert cal["prior_table"][0][:2] == (1, 10) and set(cal["judge_rates"]) == {"offline", "claude"}
     assert "## Selection" in markdown(summary, rows, cal)
+
+
+def test_reference_number_problems_counts_numbers_beyond_the_reference_list():
+    from evals.writing_eval import reference_number_problems
+
+    md = "Text [1] and [2, 3] and [9].\n\n## References\n\n[1] A (2020). X.\n[2] B (2021). Y.\n[3] C (2022). Z.\n"
+    assert reference_number_problems(md) == 1
+    assert reference_number_problems("No references here.") == 0

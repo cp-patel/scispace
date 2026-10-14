@@ -2,6 +2,7 @@
 
 import functools
 import json
+import logging
 from pathlib import Path
 
 from psycopg_pool import AsyncConnectionPool
@@ -16,6 +17,8 @@ from research_assistant.sources.http import HttpClient
 from research_assistant.sources.openalex import OpenAlex
 
 USER_AGENT = "research-assistant/0.1 (literature review tool)"
+
+log = logging.getLogger(__name__)
 
 
 def openalex_client(settings: Settings) -> OpenAlex:
@@ -33,9 +36,13 @@ def arxiv_client(settings: Settings) -> Arxiv:
 
 
 def load_calibration(path: str | None) -> dict | None:
-    if path and Path(path).exists():
-        return json.loads(Path(path).read_text())
-    return None
+    """The screening calibration table. Without it, screening falls back to a linear prior and default judge rates."""
+    if not path:
+        return None
+    if not Path(path).exists():
+        log.warning("no calibration file at %s; screening will use the default prior and judge rates", path)
+        return None
+    return json.loads(Path(path).read_text())
 
 
 def build_deps(settings: Settings, pool: AsyncConnectionPool) -> Deps:

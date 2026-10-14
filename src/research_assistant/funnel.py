@@ -162,7 +162,8 @@ async def gather(
     if local is not None:
         for facet, vec in zip(plan.facets, facet_vecs):
             for c in await local.search(vec, " ".join(facet.keywords), algo.local_top, published_before, exclude):
-                found.setdefault(c.id, c)
+                if in_years(c, year_from, year_to):
+                    found.setdefault(c.id, c)
     searched: dict[str, Work] = {}
     for facet in plan.facets:
         for w in await openalex.search(" ".join(facet.keywords), year_from=year_from, year_to=year_to,
@@ -281,8 +282,14 @@ async def screen(
             return await brain.screen(plan, batch)
 
     batches = [views[s:s + algo.screen_batch] for s in range(0, m, algo.screen_batch)]
-    results = await asyncio.gather(*(judge(b) for b in batches))
-    verdicts = {v.paper_id: v for batch in results for v in batch}
+    try:
+        # A task group cancels the batches still waiting once one fails (for example over budget);
+        # asyncio.gather would let them run on and keep spending.
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(judge(b)) for b in batches]
+    except ExceptionGroup as group:
+        raise group.exceptions[0] from None
+    verdicts = {v.paper_id: v for t in tasks for v in t.result()}
     rates = judge_rates_for(brain.name, calibration)
     table = (calibration or {}).get("prior_table")
     post = []

@@ -163,3 +163,14 @@ async def test_topic_with_no_papers_fails_clearly(db):
     await worker.run_one()
     job = await jobs.get_job(db, job_id)
     assert job["status"] == "failed" and "NoPapersFound" in job["error"]
+
+
+async def test_approval_that_removes_every_paper_fails_clearly(db):
+    worker = await make_worker(db)
+    job_id = await new_job(db, auto_approve=False)
+    await worker.run_one()
+    picked = [r["paper_id"] for r in await results.selection_table(db, job_id) if r["selected"]]
+    await jobs.approve(db, job_id, {"remove": picked, "add": []})
+    await worker.run_one()
+    job = await jobs.get_job(db, job_id)
+    assert job["status"] == "failed" and "NoPapersFound" in job["error"]

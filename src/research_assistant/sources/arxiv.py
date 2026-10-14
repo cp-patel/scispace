@@ -4,10 +4,13 @@ arXiv asks automated clients for at most one request every 3 seconds on a single
 so the HttpClient for arXiv is built with rate_per_second=1/3 and max_connections=1.
 """
 
+import logging
 import re
 import xml.etree.ElementTree as ET
 
 from research_assistant.sources.http import HttpClient, HttpError
+
+log = logging.getLogger(__name__)
 
 API_URL = "https://export.arxiv.org/api/query"
 PDF_URL = "https://arxiv.org/pdf/{}"
@@ -40,7 +43,11 @@ class Arxiv:
         if not words:
             return None
         feed = await self.http.get_text(API_URL, {"search_query": f'ti:"{" ".join(words)}"', "max_results": 3})
-        root = ET.fromstring(feed)
+        try:
+            root = ET.fromstring(feed)
+        except ET.ParseError:
+            log.warning("arXiv returned a feed that is not valid XML; treating the title as not found")
+            return None
         for entry in root.findall("a:entry", _ATOM):
             found = " ".join((entry.findtext("a:title", "", _ATOM)).split())
             if same_title(found, title):

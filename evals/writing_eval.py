@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import datetime as dt
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -20,6 +21,13 @@ from research_assistant.config import get_settings
 from research_assistant.db import create_pool, papers, results
 
 RESULTS = Path(__file__).with_name("results")
+
+
+def reference_number_problems(paper_md: str) -> int:
+    """Citation brackets in the body that point past the end of the reference list."""
+    body, _, refs = paper_md.partition("## References")
+    count = len(re.findall(r"^\[\d+\]", refs, re.M))
+    return sum(1 for group in re.findall(r"\[(\d+(?:,\s*\d+)*)\]", body) if any(int(n) > count for n in group.split(",")))
 
 
 async def job_metrics(pool, job_id: str) -> dict:
@@ -34,6 +42,7 @@ async def job_metrics(pool, job_id: str) -> dict:
     return {
         "job_id": job_id,
         "unresolved_markers": out["paper_md"].count("[E") if out else None,
+        "bad_reference_numbers": reference_number_problems(out["paper_md"]) if out else None,
         "cards": len(cards),
         "quotes_verified": verified / len(cards) if cards else None,
         "sentence_counts": dict(counts),
@@ -56,9 +65,10 @@ async def run(job_ids: list[str] | None) -> None:
     stamp = dt.date.today().isoformat()
     (RESULTS / f"writing-{stamp}.json").write_text(json.dumps(rows, indent=2))
     lines = ["# Writing eval", "",
-             "| Job | Unresolved markers | Cards | Quotes verified | Supported | Partial | Sentence counts |", "|---|---|---|---|---|---|---|"]
+             "| Job | Unresolved markers | Bad reference numbers | Cards | Quotes verified | Supported | Partial | Sentence counts |",
+             "|---|---|---|---|---|---|---|---|"]
     for r in rows:
-        lines.append(f"| {r['job_id'][:8]} | {r['unresolved_markers']} | {r['cards']} | {r['quotes_verified']} | "
+        lines.append(f"| {r['job_id'][:8]} | {r['unresolved_markers']} | {r['bad_reference_numbers']} | {r['cards']} | {r['quotes_verified']} | "
                      f"{r['supported_rate']} | {r['partial_rate']} | {r['sentence_counts']} |")
     (RESULTS / f"writing-{stamp}.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

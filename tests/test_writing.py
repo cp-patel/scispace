@@ -108,3 +108,22 @@ def test_report_markdown_renders():
     }
     md = writing.report_markdown(report)
     assert "| pool | 10 |" in md and "submodular" in md and "| plan | 0.1 | 0.0000 |" in md
+
+
+class SilentJudge:
+    name = "test"
+
+    async def check_support(self, items):
+        return []
+
+
+async def test_sentences_the_judge_skips_count_as_unsupported():
+    v = await writing.verify(SilentJudge(), "Retrieval helps grounding [E1.1]. It also helps recall [E1.2].", cards("E1.1", "E1.2"), ALGO)
+    assert v.flags == {0: "unsupported", 1: "unsupported"}
+
+
+def test_cards_with_glued_pdf_words_are_dropped():
+    glued = "We havedevelopedaQAapplicationinspiredbytheRetrievalAugmentedGeneration approach."
+    source = chunk(3, "W1", f"{glued} Retrieval reduces errors.")
+    proposed = [EvidenceCard(chunk_id=3, claim="a", quote=glued), EvidenceCard(chunk_id=3, claim="b", quote="Retrieval reduces errors.")]
+    assert [c.claim for _, c, _ in writing.accept_cards(proposed, {3: source}, section_idx=0)] == ["b"]

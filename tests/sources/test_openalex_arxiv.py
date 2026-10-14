@@ -121,3 +121,8 @@ async def test_arxiv_find_by_title_and_pdf_checks():
     assert (await ax.fetch_pdf("2305.06983", 1000)).startswith(b"%PDF")
     with pytest.raises(HttpError):
         await ax.fetch_pdf("html", 1000)
+
+
+async def test_arxiv_title_search_tolerates_a_broken_feed():
+    ax = Arxiv(client(lambda r: httpx.Response(200, text="<html><body>Service unavailable")))
+    assert await ax.find_by_title("Active Retrieval Augmented Generation") is None

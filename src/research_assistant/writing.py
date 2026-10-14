@@ -1,5 +1,6 @@
 """Level 2: passages, evidence cards, verification, and the final paper. No database access."""
 
+import re
 from collections import Counter
 from dataclasses import dataclass
 
@@ -84,14 +85,17 @@ def pick_within_budget(ranked: list[tuple[ChunkRow, float]], budget_tokens: int)
     return [ranked[i][0] for i in sorted(picked)]
 
 
+_GLUED = re.compile(r"[A-Za-z]{30,}")  # PDF text that lost its spaces, like 'havedevelopedaQAapplication...'
+
+
 def accept_cards(cards: list[EvidenceCard], chunks: dict[int, ChunkRow], section_idx: int) -> list[tuple[str, EvidenceCard, ChunkRow]]:
-    """Keep cards whose quote is in their chunk word for word; drop repeats; give ids E{section}.{n}."""
+    """Keep cards whose quote is in their chunk word for word and has no glued words; drop repeats; give ids E{section}.{n}."""
     kept: list[tuple[str, EvidenceCard, ChunkRow]] = []
     seen: set[str] = set()
     for card in cards:
         chunk = chunks.get(card.chunk_id)
         key = quote_key(card.quote)
-        if chunk is None or key in seen or not quote_in_source(card.quote, chunk.text):
+        if chunk is None or key in seen or _GLUED.search(card.quote) or not quote_in_source(card.quote, chunk.text):
             continue
         seen.add(key)
         kept.append((card_id(section_idx, len(kept) + 1), card, chunk))
@@ -124,9 +128,11 @@ async def verify(brain: Brain, text: str, cards: dict[str, CardView], algo: Algo
     checks = [SentenceCheck(idx=s.idx, sentence=s.text, quotes=[cards[c].quote for c in s.cards])
               for s in sentences if s.cards and s.idx not in flags]
     if checks:
-        for label in await brain.check_support(checks):
-            if label.label != "supported" and label.idx in {c.idx for c in checks}:
-                flags[label.idx] = label.label
+        labels = {label.idx: label.label for label in await brain.check_support(checks)}
+        for check in checks:
+            label = labels.get(check.idx, "unsupported")  # skipped by the judge: not shown to be supported
+            if label != "supported":
+                flags[check.idx] = label
     return Verification(sentences, flags)
 
 

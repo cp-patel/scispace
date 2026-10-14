@@ -127,3 +127,41 @@ def test_dedupe_by_id_doi_and_long_title():
         funnel.Candidate(id="W5", title="Intro", abstract="", embedding=e),
     ]
     assert [c.id for c in funnel.dedupe(cands)] == ["W1", "W4", "W5"]
+
+
+async def test_screen_stops_other_batches_when_one_fails():
+    import asyncio
+
+    calls = []
+
+    class Failing:
+        name = "offline"
+
+        async def screen(self, plan, papers):
+            calls.append(len(papers))
+            await asyncio.sleep(0.01)  # a real call waits on the network; the budget check runs after it returns
+            raise RuntimeError("over budget")
+
+    plan = await OfflineBrain().plan(TOPIC)
+    cands = [funnel.Candidate(id=f"W{i}", title="t", abstract="a", embedding=np.ones(4) / 2) for i in range(10)]
+    with pytest.raises(RuntimeError, match="over budget"):
+        await funnel.screen(Failing(), plan, cands, np.zeros((10, 5)), AlgoParams(screen_batch=2, screen_concurrency=1))
+    await asyncio.sleep(0.2)  # give any orphaned batches time to run
+    assert len(calls) <= 2  # the batch already woken may start; the other three never do
+
+
+async def test_local_store_hits_respect_the_year_range(world):
+    vec = HashEmbedder().embed_docs(["retrieval augmented generation grounding"])[0]
+
+    class Local:
+        async def search(self, facet_vec, keywords, limit, published_before, exclude):
+            return [
+                funnel.Candidate(id="WOLD", title="Retrieval augmented generation grounding, old", abstract="retrieval", embedding=vec, year=2001),
+                funnel.Candidate(id="WNEW", title="Retrieval augmented generation grounding, new", abstract="retrieval", embedding=vec, year=2022),
+            ]
+
+    plan = await OfflineBrain().plan(TOPIC)
+    pool, _ = await funnel.gather(plan, openalex=OpenAlex(fake_http(openalex_handler(world))), embedder=HashEmbedder(), algo=ALGO,
+                                  local=Local(), year_from=2020, year_to=2024)
+    ids = {c.id for c in pool}
+    assert "WNEW" in ids and "WOLD" not in ids

@@ -10,6 +10,8 @@ from research_assistant.text.tokenize import normalize_for_match
 
 MARKER = re.compile(r"\[\s*(E\d+\.\d+(?:\s*,\s*E\d+\.\d+)*)\s*\]")
 _LOOSE_MARKER = re.compile(r"\[\s*E[^\]]*\]")
+# A source paper's own numeric citation: [14], [1, 3], [2-5]. Never starts with 0, so intervals like [0, 1] stay.
+_SOURCE_CITATION = re.compile(r"[ \t]*\[[1-9]\d{0,3}(?:\s*[,\-\u2013]\s*[1-9]\d{0,3})*\]")
 _MARKER_AFTER_PERIOD = re.compile(r"([.!?])\s*(\[\s*E\d+\.\d+(?:\s*,\s*E\d+\.\d+)*\s*\])")
 _BIBTEX_SPECIAL = {"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_",
                    "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
@@ -34,6 +36,11 @@ def has_malformed_markers(text: str) -> bool:
 def quote_key(quote: str) -> str:
     """Comparison key for quotes: normalized, without surrounding punctuation."""
     return normalize_for_match(quote).strip(" .;:,\"'")
+
+
+def strip_source_citations(text: str) -> str:
+    """Drop numeric citations copied from a source paper; left in, they would read as our own reference numbers."""
+    return _SOURCE_CITATION.sub("", text)
 
 
 def strip_markers(text: str) -> str:
@@ -79,14 +86,15 @@ def number_papers(texts: list[str], card_paper: dict[str, str]) -> dict[str, int
 
 
 def render_markers(text: str, card_paper: dict[str, str], numbers: dict[str, int]) -> str:
-    """Replace [E1.2, E3.1] with [1, 4]. Markers that point nowhere are removed."""
+    """Replace [E1.2, E3.1] with [1, 4]. Markers that point nowhere are removed, and so are numeric
+    citations copied from a source, which would otherwise look like entries in our reference list."""
 
     def replace(match: re.Match) -> str:
         nums = sorted({numbers[card_paper[c.strip()]] for c in match.group(1).split(",")
                        if c.strip() in card_paper and card_paper[c.strip()] in numbers})
         return f"[{', '.join(map(str, nums))}]" if nums else ""
 
-    return re.sub(r"\s+([.!?,;:])", r"\1", MARKER.sub(replace, text)).strip()
+    return re.sub(r"\s+([.!?,;:])", r"\1", MARKER.sub(replace, strip_source_citations(text))).strip()
 
 
 def reference_entry(n: int, paper: dict) -> str:

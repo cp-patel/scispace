@@ -14,6 +14,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --frozen --no-dev
+# The screening calibration table, built by evals/selection_eval.py. The worker reads it at start.
+COPY evals/results/calibration.json ./evals/results/calibration.json
 
 # Bake the embedding model into the image: containers start fast and never download at runtime.
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5', cache_dir='/models')"

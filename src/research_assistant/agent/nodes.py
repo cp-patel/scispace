@@ -213,6 +213,8 @@ class JobNodes:
         added = await self.resolve(answer.get("add") or [])
         await papers.upsert_papers(self.deps.pool, added)
         ids += [c.id for c in added if c.id not in ids]
+        if not ids:
+            raise funnel.NoPapersFound("the approval removed every selected paper and added none")
         await results.mark_selected(self.deps.pool, state["job_id"], ids)
         return {"selected_ids": ids, "_counts": {"removed": len(removed), "added": len(added)}}
 
