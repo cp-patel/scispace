@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: ra
+      POSTGRES_PASSWORD: ra
+      POSTGRES_DB: ra
+    ports:
+      - "55432:5432"  # an unusual host port, so a local Postgres on 5432 never clashes
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ra -d ra"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://ra:ra@postgres:5432/ra
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build: .
+    command: ["python", "-m", "research_assistant.worker"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://ra:ra@postgres:5432/ra
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
