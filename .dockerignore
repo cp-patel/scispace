@@ -1,0 +1,9 @@
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.http-cache
+lab/data
+lab/results
+fe_cache
