@@ -1,0 +1,10 @@
+[
+  {"key": "gnn", "id": "W2907492528", "field": "machine learning", "title": "A Comprehensive Survey on Graph Neural Networks", "doi": "10.1109/TNNLS.2020.2978386"},
+  {"key": "vision_transformers", "id": "W3119997354", "field": "computer vision", "title": "Transformers in Vision: A Survey", "doi": "10.1145/3505244"},
+  {"key": "hallucination", "id": "W4309674289", "field": "natural language processing", "title": "Survey of Hallucination in Natural Language Generation", "doi": "10.1145/3571730"},
+  {"key": "dense_retrieval", "id": "W4389921502", "field": "information retrieval", "title": "Dense Text Retrieval Based on Pretrained Language Models: A Survey", "doi": "10.1145/3637870"},
+  {"key": "contrastive_ssl", "id": "W3097606775", "field": "machine learning", "title": "A Survey on Contrastive Self-Supervised Learning", "doi": "10.3390/technologies9010002"},
+  {"key": "federated", "id": "W3021654819", "field": "distributed systems", "title": "Federated Learning: Challenges, Methods, and Future Directions", "doi": "10.1109/MSP.2020.2975749"},
+  {"key": "scrnaseq", "id": "W2949237386", "field": "biology", "title": "Current best practices in single-cell RNA-seq analysis: a tutorial", "doi": "10.15252/msb.20188746"},
+  {"key": "materials_dl", "id": "W3208687975", "field": "materials science", "title": "Recent advances and applications of deep learning methods in materials science", "doi": "10.1038/s41524-022-00734-6"}
+]
