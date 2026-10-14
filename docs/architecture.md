@@ -131,13 +131,13 @@ erDiagram
 
 | Step | Seconds | Counts |
 |---|---|---|
-| gather | 38.5 | 373 candidates found |
-| rank | 0.12 | 373 in, 150 out |
-| screen | 0.02 | 150 judged, 90 included |
+| gather | 15.0 | 373 candidates found (OpenAlex answers from the HTTP cache; about 38 s live) |
+| rank | 0.10 | 373 in, 150 out |
+| screen | 0.03 | 150 judged, 90 included |
 | select | 0.02 | 40 selected |
-| ingest | 123.5 | 17 PDFs, 23 abstract only |
+| ingest | 54.7 | 17 PDFs, 23 abstract only |
 | outline | 0.02 | 3 sections (eigengap) |
-| assemble | 0.01 | 11 references |
+| assemble | 0.01 | 12 references |
 
 Almost all the time goes to talking to OpenAlex and arXiv. The math takes milliseconds.
 

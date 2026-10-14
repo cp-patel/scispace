@@ -1,11 +1,12 @@
 [
   {
-    "job_id": "1eb561dc-1586-4d72-8e4b-0968316e1920",
+    "job_id": "df4226e8-b01f-4b36-aaf7-386ab784f22e",
     "unresolved_markers": 0,
-    "cards": 24,
+    "bad_reference_numbers": 0,
+    "cards": 22,
     "quotes_verified": 1.0,
     "sentence_counts": {
-      "cited": 24
+      "cited": 22
     },
     "supported_rate": 1.0,
     "partial_rate": 0.0

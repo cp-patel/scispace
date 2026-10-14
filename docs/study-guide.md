@@ -27,20 +27,20 @@ Everything here points at real code, real tests, and real numbers from this repo
 
 ## 3. One job, traced end to end
 
-The sample run in `samples/` used the topic "retrieval-augmented generation for scientific question answering", the offline brain, and live OpenAlex and arXiv. It finished in about 3 minutes.
+The sample run in `samples/` used the topic "retrieval-augmented generation for scientific question answering", the offline brain, live arXiv, and OpenAlex answers saved in the HTTP cache by an earlier live run. It finished in about 80 seconds (about 3 minutes with a cold cache).
 
 1. **plan** (0.001 s): the topic became 5 facets: the topic itself, plus methods, evaluation, applications, and limitations.
-2. **gather** (38.5 s): keyword searches on OpenAlex and citation snowballing found 373 candidate papers. Almost all of this time is waiting on the network.
-3. **rank** (0.12 s): BM25F, cosine with Rocchio, and PageRank scored all 373; RRF merged them; the top 150 became the shortlist.
-4. **screen** (0.02 s): the judge said "include" for 90 of 150; Bayes' rule turned each verdict into a probability.
-5. **select** (0.02 s): submodular lazy greedy picked 40 (objective value 3.39). The top picks include "Re-ranking and Late Interaction Drive Retrieval Quality: A Controlled Comparison of RAG Strategies for Scientific Question Answering".
+2. **gather** (15.0 s): keyword searches on OpenAlex and citation snowballing found 373 candidate papers. The answers came from the HTTP cache, so most of this time is embedding 373 abstracts; live, the network wait makes it about 38 s.
+3. **rank** (0.10 s): BM25F, cosine with Rocchio, and PageRank scored all 373; RRF merged them; the top 150 became the shortlist.
+4. **screen** (0.03 s): the judge said "include" for 90 of 150; Bayes' rule, starting from the calibrated prior table, turned each verdict into a probability. The 40 picks landed between 0.14 and 0.21: the offline judge is barely better than chance (kappa 0.06), so its verdicts move the prior only a little.
+5. **select** (0.02 s): submodular lazy greedy picked 40 (objective value 1.85). The top picks include "Re-ranking and Late Interaction Drive Retrieval Quality: A Controlled Comparison of RAG Strategies for Scientific Question Answering".
 6. **approve**: skipped, because `auto_approve` defaults to true.
-7. **ingest** (123.5 s): 17 papers had arXiv PDFs; 23 fell back to their abstracts. The PDFs were read in memory and never stored. This step is slow on purpose: arXiv asks for one request every 3 seconds.
+7. **ingest** (54.7 s): 17 papers had arXiv PDFs; 23 fell back to their abstracts. The PDFs were read in memory and never stored. This step is slow on purpose: arXiv asks for one request every 3 seconds.
 8. **outline** (0.02 s): spectral clustering of the 40 papers; the eigengap chose 3 sections.
-9. **sections, in parallel**: each retrieved its top 40 of 479 chunks, packed about 25 into a 6,000-token budget, kept 8 evidence cards (every quote verified), wrote 190 to 260 words, and passed verification with 0 flags.
-10. **assemble** (0.01 s): the abstract, introduction and conclusion were checked too; 11 papers were cited, numbered by first use; BibTeX was built from metadata.
+9. **sections, in parallel**: each retrieved its top 40 of 475 chunks, packed 26 to 31 into a 6,000-token budget, kept 7 or 8 evidence cards (every quote verified; 2 of 24 proposals were dropped by the checks), wrote 157 to 213 words, and passed verification with 0 flags.
+10. **assemble** (0.01 s): the abstract, introduction and conclusion were checked too; 12 papers were cited, numbered by first use; BibTeX was built from metadata.
 
-The writing eval on this job: 0 unresolved markers, 24 cards, every quote verified, every sentence cited.
+The writing eval on this job: 0 unresolved markers, 0 citation numbers past the end of the reference list, 22 cards, every quote verified, every sentence cited.
 
 What the offline brain cannot do, and Claude would fix:
 - **Section names.** They are word lists, close to each other ("Retrieval, generation, rag").
@@ -88,7 +88,7 @@ What the offline brain cannot do, and Claude would fix:
 
 16. **What is contextual compression here?** Turning retrieved passages into evidence cards: one claim plus the exact supporting quote. The writer sees only those cards, which saves tokens and makes every claim checkable.
 
-17. **How do you prevent made-up references?** The LLM never writes a reference. It cites card ids like `[E2.3]`; code maps each id to a paper and builds the reference from OpenAlex metadata. An id that does not exist is flagged, and its sentence is deleted.
+17. **How do you prevent made-up references?** The LLM never writes a reference. It cites card ids like `[E2.3]`; code maps each id to a paper and builds the reference from OpenAlex metadata. An id that does not exist is flagged, and its sentence is deleted. A subtler leak: a quote copied from a PDF carries the source paper's own citation numbers, like `[14]`, which would read as our reference 14. Three layers stop it: PDF cleaning strips numeric citations, rendering strips any that slip through, and the writing eval counts numbers past the end of the reference list (0 in the sample run).
 
 18. **How do you check that claims are supported?**
     - **Code checks first:** every cited id exists in this section, every paragraph has a citation, and long sentences without a citation are flagged.
@@ -232,7 +232,7 @@ What the offline brain cannot do, and Claude would fix:
 | Designing multi-component systems | API, worker, queue, database, agent: `docs/architecture.md` |
 | Python | the whole repository, typed, lint-clean |
 | SQL and database design | `db/schema.sql`, `db/jobs.py` (`SKIP LOCKED`), indexes and iterative scans |
-| Testing fundamentals | 291 tests: math properties, fakes, end-to-end, crash and race tests |
+| Testing fundamentals | 304 tests: math properties, fakes, end-to-end, crash and race tests |
 | Communication | this guide; `docs/math.md` explains each algorithm plainly |
 | Managing technology products | spec, plan, evals, and honest results |
 | Gen AI approaches | RAG, LLM-as-judge with Bayes, structured outputs, citation verification |

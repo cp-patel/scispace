@@ -24,7 +24,7 @@ The last command returns a job id. Check progress with `GET /v1/jobs/<id>` and, 
 
 ## Sample outputs
 
-From a real run (live OpenAlex and arXiv, offline brain, about 3 minutes):
+From a real run (offline brain, live arXiv, OpenAlex answers from the HTTP cache of an earlier live run; about 80 seconds, or about 3 minutes with a cold cache):
 
 - [samples/paper.md](samples/paper.md): the review
 - [samples/references.bib](samples/references.bib): references built from metadata

@@ -1,164 +1,180 @@
 [
     {
         "node": "plan",
-        "finished_at": "2026-10-14T18:57:16.144846Z",
+        "finished_at": "2026-10-14T19:54:01.285711Z",
         "cost_usd": 0.0,
         "facets": 5,
         "seconds": 0.001
     },
     {
         "node": "gather",
-        "finished_at": "2026-10-14T18:57:54.651294Z",
+        "finished_at": "2026-10-14T19:54:16.325067Z",
         "cost_usd": 0.0,
         "new": 373,
         "pool": 373,
-        "seconds": 38.505,
+        "seconds": 15.044,
         "must_include": 0
     },
     {
         "node": "rank",
-        "finished_at": "2026-10-14T18:57:54.777933Z",
+        "finished_at": "2026-10-14T19:54:16.436067Z",
         "cost_usd": 0.0,
         "in": 373,
         "out": 150,
-        "seconds": 0.115
+        "seconds": 0.098
     },
     {
         "node": "screen",
-        "finished_at": "2026-10-14T18:57:54.801016Z",
+        "finished_at": "2026-10-14T19:54:16.463187Z",
         "cost_usd": 0.0,
         "judged": 150,
-        "seconds": 0.021,
+        "seconds": 0.025,
         "included": 90
     },
     {
         "node": "select",
-        "finished_at": "2026-10-14T18:57:54.818499Z",
+        "finished_at": "2026-10-14T19:54:16.487001Z",
         "cost_usd": 0.0,
-        "seconds": 0.016,
+        "seconds": 0.022,
         "selected": 40,
-        "objective": 3.3874649813359152
+        "objective": 1.8525904699355578
     },
     {
         "node": "approve",
-        "finished_at": "2026-10-14T18:57:54.820357Z",
+        "finished_at": "2026-10-14T19:54:16.489157Z",
         "cost_usd": 0.0,
         "seconds": 0.0
     },
     {
         "node": "ingest",
-        "finished_at": "2026-10-14T18:59:58.375215Z",
+        "finished_at": "2026-10-14T19:55:11.189055Z",
         "cost_usd": 0.0,
         "pdf": 17,
-        "seconds": 123.549,
+        "seconds": 54.7,
         "abstract": 23
     },
     {
         "node": "outline",
-        "finished_at": "2026-10-14T18:59:58.397543Z",
+        "finished_at": "2026-10-14T19:55:11.210419Z",
         "cost_usd": 0.0,
-        "seconds": 0.018,
+        "seconds": 0.019,
         "sections": 3,
         "eigengap_k": 3,
         "eigenvalues": [
             0.0,
-            0.2642,
-            0.5677,
-            0.6798,
-            0.7017,
-            0.7225,
-            0.7406,
-            0.8085,
-            0.8333,
-            0.8694
+            0.2815,
+            0.5623,
+            0.6714,
+            0.715,
+            0.7217,
+            0.7597,
+            0.7926,
+            0.8289,
+            0.8514
         ]
     },
     {
         "node": "retrieve",
-        "finished_at": "2026-10-14T18:59:58.488717Z",
+        "finished_at": "2026-10-14T19:55:11.302727Z",
         "cost_usd": 0.0,
         "kept": 40,
-        "seconds": 0.073,
-        "chunks_considered": 479
+        "seconds": 0.081,
+        "chunks_considered": 475
     },
     {
         "node": "retrieve",
-        "finished_at": "2026-10-14T18:59:58.507375Z",
+        "finished_at": "2026-10-14T19:55:11.316616Z",
         "cost_usd": 0.0,
         "kept": 40,
-        "seconds": 0.089,
-        "chunks_considered": 479
+        "seconds": 0.094,
+        "chunks_considered": 475
+    },
+    {
+        "node": "retrieve",
+        "finished_at": "2026-10-14T19:55:11.352019Z",
+        "cost_usd": 0.0,
+        "kept": 40,
+        "seconds": 0.128,
+        "chunks_considered": 475
     },
     {
         "node": "compress",
-        "finished_at": "2026-10-14T18:59:58.556777Z",
+        "finished_at": "2026-10-14T19:55:11.356375Z",
         "cost_usd": 0.0,
-        "chunks": 25,
-        "seconds": 0.048,
-        "cards_kept": 8,
+        "chunks": 26,
+        "seconds": 0.038,
+        "cards_kept": 7,
         "cards_proposed": 8
     },
     {
-        "node": "retrieve",
-        "finished_at": "2026-10-14T18:59:58.556862Z",
-        "cost_usd": 0.0,
-        "kept": 40,
-        "seconds": 0.138,
-        "chunks_considered": 479
-    },
-    {
         "node": "compress",
-        "finished_at": "2026-10-14T18:59:58.568923Z",
+        "finished_at": "2026-10-14T19:55:11.368792Z",
         "cost_usd": 0.0,
-        "chunks": 28,
-        "seconds": 0.043,
-        "cards_kept": 8,
+        "chunks": 31,
+        "seconds": 0.012,
+        "cards_kept": 7,
         "cards_proposed": 8
     },
     {
         "node": "write",
-        "finished_at": "2026-10-14T18:59:58.570222Z",
+        "finished_at": "2026-10-14T19:55:11.371878Z",
         "cost_usd": 0.0,
-        "cards": 8,
-        "words": 257,
+        "cards": 7,
+        "words": 213,
         "seconds": 0.003
     },
     {
-        "node": "write",
-        "finished_at": "2026-10-14T18:59:58.579871Z",
-        "cost_usd": 0.0,
-        "cards": 8,
-        "words": 193,
-        "seconds": 0.007
-    },
-    {
         "node": "compress",
-        "finished_at": "2026-10-14T18:59:58.579973Z",
+        "finished_at": "2026-10-14T19:55:11.371962Z",
         "cost_usd": 0.0,
-        "chunks": 29,
-        "seconds": 0.009,
+        "chunks": 27,
+        "seconds": 0.01,
         "cards_kept": 8,
         "cards_proposed": 8
     },
     {
+        "node": "write",
+        "finished_at": "2026-10-14T19:55:11.372184Z",
+        "cost_usd": 0.0,
+        "cards": 7,
+        "words": 157,
+        "seconds": 0.002
+    },
+    {
         "node": "verify",
-        "finished_at": "2026-10-14T18:59:58.582100Z",
+        "finished_at": "2026-10-14T19:55:11.374983Z",
         "cost_usd": 0.0,
         "flagged": 0,
         "seconds": 0.002,
-        "sentences": 8
+        "sentences": 7
     },
     {
         "node": "write",
-        "finished_at": "2026-10-14T18:59:58.583520Z",
+        "finished_at": "2026-10-14T19:55:11.377039Z",
         "cost_usd": 0.0,
         "cards": 8,
-        "words": 228,
+        "words": 206,
+        "seconds": 0.002
+    },
+    {
+        "node": "verify",
+        "finished_at": "2026-10-14T19:55:11.377394Z",
+        "cost_usd": 0.0,
+        "flagged": 0,
+        "seconds": 0.002,
+        "sentences": 7
+    },
+    {
+        "node": "finish",
+        "finished_at": "2026-10-14T19:55:11.379630Z",
+        "cost_usd": 0.0,
+        "cited": 7,
+        "status": "done",
         "seconds": 0.001
     },
     {
         "node": "verify",
-        "finished_at": "2026-10-14T18:59:58.585109Z",
+        "finished_at": "2026-10-14T19:55:11.381028Z",
         "cost_usd": 0.0,
         "flagged": 0,
         "seconds": 0.002,
@@ -166,42 +182,26 @@
     },
     {
         "node": "finish",
-        "finished_at": "2026-10-14T18:59:58.586522Z",
+        "finished_at": "2026-10-14T19:55:11.382289Z",
         "cost_usd": 0.0,
-        "cited": 8,
-        "status": "done",
-        "seconds": 0.001
-    },
-    {
-        "node": "verify",
-        "finished_at": "2026-10-14T18:59:58.587924Z",
-        "cost_usd": 0.0,
-        "flagged": 0,
-        "seconds": 0.001,
-        "sentences": 8
-    },
-    {
-        "node": "finish",
-        "finished_at": "2026-10-14T18:59:58.589451Z",
-        "cost_usd": 0.0,
-        "cited": 8,
+        "cited": 7,
         "status": "done",
         "seconds": 0.001
     },
     {
         "node": "finish",
-        "finished_at": "2026-10-14T18:59:58.592158Z",
+        "finished_at": "2026-10-14T19:55:11.385395Z",
         "cost_usd": 0.0,
         "cited": 8,
         "status": "done",
-        "seconds": 0.001
+        "seconds": 0.002
     },
     {
         "node": "assemble",
-        "finished_at": "2026-10-14T18:59:58.603911Z",
+        "finished_at": "2026-10-14T19:55:11.398690Z",
         "cost_usd": 0.0,
-        "seconds": 0.009,
+        "seconds": 0.01,
         "sections": 3,
-        "references": 11
+        "references": 12
     }
 ]
