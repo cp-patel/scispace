@@ -59,6 +59,8 @@ Set `HTTP_CACHE_DIR=.http-cache` so repeated OpenAlex calls are free.
 
 ## Layout
 
+New to the code? Start with [docs/code-tour.md](docs/code-tour.md): a reading order, one job traced through the code, a map of every file, and where to make common changes.
+
 | Path | What it holds |
 |---|---|
 | `src/research_assistant/ranking/` | the math: BM25F, Rocchio, PageRank, RRF, Bayes, selection, DPP, spectral clustering, metrics |
@@ -70,6 +72,7 @@ Set `HTTP_CACHE_DIR=.http-cache` so repeated OpenAlex calls are free.
 
 ## Documentation
 
+- [docs/code-tour.md](docs/code-tour.md): how to start and find your way around the code
 - [docs/interview-prep.md](docs/interview-prep.md): the one-stop interview prep: what to say, the math, results, stories, weak spots, and a 45-question drill
 - [docs/architecture.md](docs/architecture.md): how it works, why, and how it grows to 200 million papers
 - [docs/math.md](docs/math.md): every algorithm, with proofs, tests, and our measured results
