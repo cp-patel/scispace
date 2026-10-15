@@ -227,3 +227,27 @@ These come from Chandra's global instructions and from this session.
 **Open items**
 1. Run the real 50K benchmark once Chandra has an OpenAlex API key. Then commit `lab/results/`, update the benchmark numbers in `docs/math.md`, `docs/study-guide.md` and `docs/interview-prep.md`, and push.
 2. The 17 deferred minor review findings listed in the baseline are still open; Chandra decides which, if any, to fix.
+
+### 2026-10-15, evening: clearer production-shell section
+
+**What changed**
+- Chandra found section 5 of `docs/interview-prep.md` ("The production shell") hard to follow; it had been a dense table. It was rewritten in plain terms (commit `e442965`):
+  - It opens with why a shell is needed: jobs are slow, depend on outside services, cost money, and can crash.
+  - One analogy runs through it: a restaurant kitchen (ticket rail = queue, a cook holding a ticket = lease, notes on the ticket = checkpoint, calling the supplier again = retry, spending limit = budget).
+  - It is organized around four problems:
+    1. Slow work: the job queue and `SKIP LOCKED`.
+    2. Crashes: the lease, heartbeat, reaper, checkpoints, and idempotent steps, plus the incident walk-through.
+    3. Unreliable outside services: retries with backoff and jitter, rate limits, and the disk cache.
+    4. Cost and visibility: the budget, logs, metrics, trace, and cancel and pause.
+  - It ends with a Docker part, a 4-sentence "how to say it in the interview" version, and the old table kept as a quick reference.
+  - Every claim was checked against the code: the claim query in `db/jobs.py`, the 120 s lease and 30 s heartbeat, 3 attempts, and the retry rule in `sources/http.py`.
+- **Writing preference reconfirmed:** Chandra wants explanations that start with the why, use one analogy, and define terms like 429, jitter, and idempotent in plain words. Apply this to future doc sections.
+
+**State at the end of this entry**
+- Branch `main` is in sync with `origin`: https://github.com/cp-patel/scispace.
+- Tests: 304 pass. No code changed in this entry, only docs.
+
+**Open items (unchanged)**
+1. Run the real 50K benchmark once Chandra has a free OpenAlex API key (`OPENALEX_API_KEY` in `.env`).
+2. The old playbook artifact still needs Chandra to delete it (claude.ai menu, or `/artifacts` then d).
+3. The 17 deferred minor review findings remain open, for Chandra to decide.
