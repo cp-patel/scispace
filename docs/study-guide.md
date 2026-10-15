@@ -45,7 +45,7 @@ The writing eval on this job: 0 unresolved markers, 0 citation numbers past the 
 What the offline brain cannot do, and Claude would fix:
 - **Section names.** They are word lists, close to each other ("Retrieval, generation, rag").
 - **Wording.** The text stitches quotes together ("Smith et al. 2026 report that ...").
-- **Coverage.** Only 11 of the 40 selected papers are cited, because it keeps the 8 best-matching sentences per section.
+- **Coverage.** Only 12 of the 40 selected papers are cited, because it keeps at most 8 best-matching sentences per section.
 
 ## 4. Question bank
 
@@ -53,7 +53,7 @@ What the offline brain cannot do, and Claude would fix:
 
 1. **How would you pick 40 papers out of thousands?** With a funnel. First get recall: keyword search per sub-question, plus citation snowballing. Then score cheaply with keywords, vectors and the citation graph, and merge the rankings. Then spend an LLM judge only on the top 150. Finally choose the set, not just the top scores, so the 40 cover every sub-question without repeats.
 
-2. **Why a funnel?** Cost and latency grow from step to step: BM25 and vectors cost microseconds per paper, an LLM judgment costs real money and seconds, and reading full text costs minutes. A funnel spends each method where it pays off. In the sample run, the math on 373 papers took 0.15 seconds, while the network took 160.
+2. **Why a funnel?** Cost and latency grow from step to step: BM25 and vectors cost microseconds per paper, an LLM judgment costs real money and seconds, and reading full text costs minutes. A funnel spends each method where it pays off. In the sample run, the math on 373 papers took 0.15 seconds, while fetching took about 70 seconds even with OpenAlex answers cached.
 
 3. **BM25 or embeddings?** Both. BM25 nails exact rare terms (a gene name, "LoRA"); embeddings catch the same idea in different words. In our eval, vectors found 2.5 times more of the survey-cited papers than keywords did, but keywords stay essential for exact-term queries. Hybrid search is the standard answer.
 

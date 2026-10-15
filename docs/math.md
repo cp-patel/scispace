@@ -261,7 +261,7 @@ Then take the eigenvectors of the k smallest eigenvalues, scale each row to leng
 - **Why normalize the rows.** Normalizing each row (the Ng, Jordan, Weiss method) places papers from the same group near the same point on a sphere, where k-means separates them easily.
 - **The link to graph cuts.** The eigenvectors are the relaxed solution to the normalized-cut problem: split the graph cutting as few weighted links as possible, relative to group size.
 
-**In the sample run** the smallest eigenvalues were 0.000, 0.264, 0.568, 0.680, 0.702, 0.723. Among k from 3 to 8, the largest jump comes after the third (0.680 - 0.568 = 0.112), so the review got 3 sections.
+**In the sample run** the smallest eigenvalues were 0.000, 0.282, 0.562, 0.671, 0.715, 0.722. Among k from 3 to 8, the largest jump comes after the third (0.671 - 0.562 = 0.109), so the review got 3 sections.
 
 **Where it lives.** `ranking/cluster.py`, `agent/nodes.py` (`outline`). `test_spectral_recovers_planted_groups_and_their_count` plants 3 groups and checks that both the groups and k = 3 are found.
 
