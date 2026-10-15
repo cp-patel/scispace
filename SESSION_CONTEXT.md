@@ -169,3 +169,61 @@ These come from Chandra's global instructions and from this session.
 ## Context updates
 
 (Append new dated entries below. Do not edit the entries above.)
+
+### 2026-10-15, late morning: prep docs, 8-survey eval, code tour
+
+**Corrections to the baseline entry**
+- **The interview prep document is now a repo file:** `docs/interview-prep.md`. Chandra asked for prep material to live in the repository, not as a Claude artifact. The playbook artifact named in the baseline is obsolete.
+  - Chandra agreed to delete that artifact, but the delete needs an on-screen confirmation the session couldn't show. Chandra can remove it from claude.ai (the artifact's menu) or with `/artifacts` in a Claude Code terminal (press d).
+  - Rule for the future: project documents go in `docs/` as Markdown, linked from the README, then committed and pushed.
+- **The 8-survey eval ran.** The baseline's eval numbers (7 surveys) are superseded by the table below.
+
+**What changed**
+- `SESSION_CONTEXT.md` was pushed to GitHub, at Chandra's request.
+- `docs/interview-prep.md` was added:
+  - the 60-second answer, the architecture with a Mermaid diagram, and the math per method;
+  - eval tables, a traced job, two bug stories, weak spots, and the five-day plan;
+  - a 45-question drill with collapsible answers, generated from section 4 of `docs/study-guide.md`. Keep the two in sync: if a study-guide answer changes, change the drill too.
+- `docs/code-tour.md` was added: how to run it, the pure-logic vs I/O layout, a 10-stop reading order, one job traced through the code with function names, a file map, a test map, and where to make common changes. Linked from the README.
+- **The overnight timer failed.** The Mac slept, and macOS pauses `sleep` timers during sleep. The timer was stopped and both runs were started directly.
+  - **8-survey eval:** succeeded, at an OpenAlex cost of $0.016. `evals/results/` and `calibration.json` were committed, and the numbers were updated in `docs/math.md`, `docs/study-guide.md` and `docs/interview-prep.md`.
+  - **Real 50K benchmark:** failed with `401 API key required for cursor paging`. OpenAlex now requires a free API key to page through large result sets. Chandra has to create it at openalex.org (an account sign-up the assistant must not do) and add `OPENALEX_API_KEY=...` to `.env`. Then run:
+    ```bash
+    HTTP_CACHE_DIR=.http-cache uv run python -m lab.bench --source openalex --n 50000 --queries 1000 --pgvector
+    ```
+    Until then, the docs say the benchmark numbers are synthetic.
+- The Docker image was rebuilt with the 8-survey calibration table (verified inside the worker container).
+
+**Current numbers** (8 surveys from 7 fields; values with intervals are means with 95% bootstrap intervals)
+
+| Ranking | Recall@150 [95% interval] | nDCG@100 |
+|---|---|---|
+| OpenAlex's order | 0.059 [0.030, 0.090] | 0.064 |
+| BM25F | 0.081 [0.042, 0.125] | 0.067 |
+| Dense | 0.205 [0.181, 0.232] | 0.184 |
+| RRF text | 0.188 [0.170, 0.212] | 0.150 |
+| Plus PageRank | 0.241 [0.200, 0.296] | 0.200 |
+| Full | 0.245 [0.198, 0.311] | 0.204 |
+
+- **Significant (nDCG@100):** RRF over BM25F, +0.083 (p 0.008); adding PageRank, +0.050 (p 0.014).
+- **Not significant:** adding Rocchio, +0.004 (p 0.40).
+- **Recall@40 by selection method:** top-k 0.164, MMR 0.154, submodular 0.150, DPP 0.151. None of the differences are significant. DPP picks the most varied sets (mean pairwise cosine 0.777, vs 0.828 for top-k).
+- **Offline judge:** sensitivity 0.71, specificity 0.46, kappa 0.08.
+- **Calibration prior** by shortlist rank:
+
+  | Ranks | Prior |
+  |---|---|
+  | 1-10 | 0.15 |
+  | 11-25 | 0.13 |
+  | 26-50 | 0.18 |
+  | 51-100 | 0.19 |
+  | 101+ | 0.08 |
+
+- **Tests:** 304 pass (280 fast, 23 database, 1 slow). Lint is clean.
+
+**State at the end of this entry**
+- Branch `main` is in sync with `origin`: https://github.com/cp-patel/scispace.
+
+**Open items**
+1. Run the real 50K benchmark once Chandra has an OpenAlex API key. Then commit `lab/results/`, update the benchmark numbers in `docs/math.md`, `docs/study-guide.md` and `docs/interview-prep.md`, and push.
+2. The 17 deferred minor review findings listed in the baseline are still open; Chandra decides which, if any, to fix.
