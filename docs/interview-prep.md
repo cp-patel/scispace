@@ -42,7 +42,7 @@ Say these six points in order, one or two sentences each. Then stop and let the 
 2. **Three kinds of evidence, merged by rank.**
    - BM25F catches exact terms, embeddings catch meaning, and Personalized PageRank catches what the topic builds on.
    - Reciprocal Rank Fusion merges them without having to calibrate their scales.
-   - Adding the citation graph raised nDCG@100 by 0.051 (p = 0.032).
+   - Adding the citation graph raised nDCG@100 by 0.050 (p = 0.014).
 3. **Selection is a set problem.** The 40 should be relevant, cover every sub-topic, and not repeat each other. A submodular objective does this with a proven 63% guarantee; a DPP is the bonus alternative.
 4. **Evidence cards, not free text.** For each section, retrieve the best passages, pack them into a token budget, and extract claims with exact quotes. Code rejects any quote that is not in the source word for word.
 5. **Verify, then revise.**
@@ -127,7 +127,7 @@ cos(a, b) = a · b / (|a| |b|)      unit vectors: just a · b, so one matrix mul
 q'        = α · q + β · mean(top 20 results), then scaled to length 1      α = 1, β = 0.75
 ```
 
-**Our number:** vectors alone found 2.5 times more survey-cited papers than keywords alone (recall@150 0.203 vs 0.080). Rocchio added only +0.004 nDCG (p = 0.45), so we can't claim it helps.
+**Our number:** vectors alone found 2.5 times more survey-cited papers than keywords alone (recall@150 0.205 vs 0.081). Rocchio added only +0.004 nDCG (p = 0.40), so we can't claim it helps.
 
 ### Personalized PageRank (core)
 
@@ -141,7 +141,7 @@ v = top 50 papers by text score (sums to 1); dangling papers send their mass bac
 - **Why it converges.** One step shrinks any error by a factor of α (a contraction), so there is exactly one answer. About 140 steps reach an error of 1e-10.
 - **Why "personalized".** Global citation counts reward famous papers from any field. Restarting at topic seeds makes importance topic-specific.
 
-**Our number:** the largest proven gain. Recall@150 rose from 0.186 to 0.242, and nDCG@100 by +0.051 (p = 0.032).
+**Our number:** the largest proven gain. Recall@150 rose from 0.188 to 0.241, and nDCG@100 by +0.050 (p = 0.014).
 
 ### Reciprocal Rank Fusion (core)
 
@@ -152,7 +152,7 @@ RRF(d) = Σ_i  w_i / (60 + rank_i(d))       absent from a list: adds 0
 lists: BM25F and dense per facet (weight 1/F each), PageRank (weight 1)
 ```
 
-**The honest limit:** equal weights let a weak list drag down a strong one. Dense alone (nDCG 0.165) beat the BM25F + dense fusion (0.129). The fix is learned weights, trained on the survey labels.
+**The honest limit:** equal weights let a weak list drag down a strong one. Dense alone (nDCG 0.184) beat the BM25F + dense fusion (0.150). The fix is learned weights, trained on the survey labels.
 
 ### The LLM judge, weighed with Bayes' rule (core)
 
@@ -164,7 +164,7 @@ LR+ = Se / (1 − Sp)      LR− = (1 − Se) / Sp
 posterior odds = prior odds × LR      prior = calibration table by shortlist rank
 ```
 
-**Our number:** the offline judge has Se 0.69 and Sp 0.46. That makes LR+ about 1.28 and Cohen's kappa 0.06, barely above chance, so the math correctly gives it little weight. If Se = 1 − Sp, then LR = 1 and the prior doesn't move at all.
+**Our number:** the offline judge has Se 0.71 and Sp 0.46. That makes LR+ about 1.32 and Cohen's kappa 0.08, barely above chance, so the math correctly gives it little weight. If Se = 1 − Sp, then LR = 1 and the prior doesn't move at all.
 
 ### Submodular selection and lazy greedy (core)
 
@@ -191,7 +191,7 @@ det(L_S) = Π q_i² · det(E_S E_Sᵀ)   (quality × squared volume)
 greedy MAP by incremental Cholesky: O(N k²)
 ```
 
-**Our number:** DPP picked the most varied sets (mean pairwise cosine 0.779 vs 0.825 for top-k). The recall differences were not significant. log det is not monotone, so the 63% bound does not carry over.
+**Our number:** DPP picked the most varied sets (mean pairwise cosine 0.777 vs 0.828 for top-k). The recall differences were not significant. log det is not monotone, so the 63% bound does not carry over.
 
 ## 4. Writing with proof
 
@@ -251,29 +251,29 @@ Each section works like this:
 There are no labels for "the right 40 papers", so the eval uses published surveys as answer keys:
 - The pipeline runs as if on each survey's publication date.
 - The survey's reference list is what it should find.
-- 7 surveys from 6 fields, with 95% bootstrap intervals.
+- 8 surveys from 7 fields, with 95% bootstrap intervals.
 
 | Ranking | Recall@150 [95% interval] | nDCG@100 |
 |---|---|---|
-| OpenAlex's own order | 0.065 [0.032, 0.097] | 0.067 |
-| BM25F only | 0.080 [0.035, 0.131] | 0.054 |
-| Dense vectors only | 0.203 [0.177, 0.235] | 0.165 |
-| RRF of BM25F + dense | 0.186 [0.167, 0.212] | 0.129 |
-| ... + PageRank | 0.242 [0.196, 0.303] | 0.180 |
-| ... + Rocchio (full system) | 0.245 [0.192, 0.319] | 0.184 |
+| OpenAlex's own order | 0.059 [0.030, 0.090] | 0.064 |
+| BM25F only | 0.081 [0.042, 0.125] | 0.067 |
+| Dense vectors only | 0.205 [0.181, 0.232] | 0.184 |
+| RRF of BM25F + dense | 0.188 [0.170, 0.212] | 0.150 |
+| ... + PageRank | 0.241 [0.200, 0.296] | 0.200 |
+| ... + Rocchio (full system) | 0.245 [0.198, 0.311] | 0.204 |
 
 | Comparison (nDCG@100, paired sign-flip test) | Mean gain | p-value |
 |---|---:|---:|
-| RRF of text signals vs BM25F only | +0.074 | 0.016 |
-| Adding PageRank | +0.051 | 0.032 |
-| Adding Rocchio | +0.004 | 0.45 |
+| RRF of text signals vs BM25F only | +0.083 | 0.008 |
+| Adding PageRank | +0.050 | 0.014 |
+| Adding Rocchio | +0.004 | 0.40 |
 
 | Selection method | Recall@40 | Mean pairwise cosine (lower = more varied) |
 |---|---:|---:|
-| Top-k by score | 0.144 | 0.825 |
-| MMR (λ = 0.7) | 0.141 | 0.814 |
-| Submodular (the default) | 0.132 | 0.821 |
-| DPP | 0.130 | 0.779 |
+| Top-k by score | 0.164 | 0.828 |
+| MMR (λ = 0.7) | 0.154 | 0.814 |
+| Submodular (the default) | 0.150 | 0.824 |
+| DPP | 0.151 | 0.777 |
 
 **How to read this out loud:**
 - **Two gains are real:** fusion over keywords, and adding PageRank.
@@ -291,7 +291,7 @@ There are no labels for "the right 40 papers", so the eval uses published survey
 | PQ | 48 bytes, then re-rank top 100 | 0.40 / 1.00 | |
 | LSH | 8 bits × 16 tables | 0.91 | |
 
-At 3,000 vectors, exact search beats every index; indexes pay off as N grows. Don't add an index until measurements say you need one. A run on 50,000 real abstracts is in progress.
+At 3,000 vectors, exact search beats every index; indexes pay off as N grows. Don't add an index until measurements say you need one. A run on 50,000 real abstracts is ready to go but needs a free OpenAlex API key, which OpenAlex now requires for paging through large result sets.
 
 ## 7. One job, traced
 
@@ -330,10 +330,10 @@ Interviewers remember a real bug you found and fixed. These two came from the fi
 Saying these before you're asked shows judgment. Each one comes with the fix you'd try next.
 
 - **Recall is low in absolute terms (about 0.25 at 150).** The offline planner writes narrow keyword queries, so many cited papers never enter the pool. An LLM planner is the first fix, and the eval will show whether it works.
-- **The offline judge is barely better than chance (kappa 0.06).** Bayes' rule correctly ignores most of it. A Claude judge would need a small hand-labeled set to check its error rates.
-- **Only 7 surveys so far.** The intervals are wide, and only two gains are significant. The 8th survey is being added.
+- **The offline judge is barely better than chance (kappa 0.08).** Bayes' rule correctly ignores most of it. A Claude judge would need a small hand-labeled set to check its error rates.
+- **Only 8 surveys.** The intervals are wide, and only two gains are significant. More surveys would narrow them.
 - **The eval can't see diversity.** Survey references reward finding cited papers, not variety. Coverage labels per sub-topic would measure it.
-- **The vector benchmark is synthetic.** The 50,000-abstract run with pgvector is in progress; until it lands, say the numbers come from synthetic data.
+- **The vector benchmark is synthetic.** The 50,000-abstract run with pgvector needs a free OpenAlex API key; until it runs, say the numbers come from synthetic data.
 - **The Claude path has never run live.** There was no API key. Mock tests pin the exact request shape, so a first real run should need at most a small fix.
 - **The offline writing reads stiffly.** It stitches quotes together ("X et al. report that..."). It's a free stand-in, and every claim is still a verified quote.
 
@@ -400,7 +400,7 @@ Citation counts are global popularity, from any field. Personalized PageRank sta
 <details>
 <summary><b>7. How do you combine an LLM judge with retrieval scores?</b></summary>
 
-Treat the judge as a noisy test with measured sensitivity and specificity. Start from a prior based on the paper's rank, and update it with Bayes' rule. A weak judge barely moves the prior, and a strong one moves it a lot. Our offline judge had kappa 0.06, and the math correctly mostly ignored it.
+Treat the judge as a noisy test with measured sensitivity and specificity. Start from a prior based on the paper's rank, and update it with Bayes' rule. A weak judge barely moves the prior, and a strong one moves it a lot. Our offline judge had kappa 0.08, and the math correctly mostly ignored it.
 
 </details>
 
@@ -421,14 +421,14 @@ For a monotone submodular F, the gap to the optimum after step i satisfies `gap(
 <details>
 <summary><b>10. MMR, submodular or DPP?</b></summary>
 
-MMR is a quick rule with no guarantee. Submodular lets you write down what "good set" means and gives a guarantee. DPP scores a whole set as volume, quality times diversity, but its greedy has no clean guarantee. In our eval DPP produced the most varied sets (mean pairwise cosine 0.78 vs 0.82), while recall differences were not significant.
+MMR is a quick rule with no guarantee. Submodular lets you write down what "good set" means and gives a guarantee. DPP scores a whole set as volume, quality times diversity, but its greedy has no clean guarantee. In our eval DPP produced the most varied sets (mean pairwise cosine 0.78 vs 0.83), while recall differences were not significant.
 
 </details>
 
 <details>
 <summary><b>11. How do you evaluate selection without labels?</b></summary>
 
-Use published surveys as answer keys. A survey's reference list is an expert's selection for a topic. Run the pipeline as if on the survey's publication date, exclude the survey itself, and measure recall of its references. We did this for 7 surveys in 6 fields, with bootstrap intervals and permutation tests.
+Use published surveys as answer keys. A survey's reference list is an expert's selection for a topic. Run the pipeline as if on the survey's publication date, exclude the survey itself, and measure recall of its references. We did this for 8 surveys in 7 fields, with bootstrap intervals and permutation tests.
 
 </details>
 
@@ -442,7 +442,7 @@ A survey does not cite every good paper, so precision is only a floor and recall
 <details>
 <summary><b>13. How confident are you in your numbers?</b></summary>
 
-- **What is solid:** with 7 surveys, two improvements are significant (fusion over keywords alone, and adding PageRank), with p-values of 0.016 and 0.032.
+- **What is solid:** with 8 surveys, two improvements are significant (fusion over keywords alone, and adding PageRank), with p-values of 0.008 and 0.014.
 - **What is not:** the Rocchio and selection-method differences are within noise.
 - **The caveat I'd state:** absolute recall is low (about 0.25 at 150), mainly because the offline planner's keyword queries are narrow. An LLM planner is the first thing I'd measure.
 
@@ -716,7 +716,7 @@ The Model Context Protocol is a standard way for AI assistants to call tools. Th
 <summary><b>44. How would Claude change the results?</b></summary>
 
 - **Better facets and keywords:** a bigger, better pool, so higher recall.
-- **A real judge:** much higher kappa than the offline rules' 0.06.
+- **A real judge:** much higher kappa than the offline rules' 0.08.
 - **Real writing:** sections named by meaning, real synthesis instead of stitched quotes, and more papers cited.
 - **Nothing to rebuild:** the evals and verification stay the same, so the comparison is fair.
 

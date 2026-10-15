@@ -9,7 +9,7 @@ Everything here points at real code, real tests, and real numbers from this repo
 ## 1. The one-minute answer
 
 1. **A funnel.** Cheap methods look at thousands of papers and expensive ones look at few. Keyword search, vectors and the citation graph score about 2,000 candidates in milliseconds; an LLM judge sees only the top 150; full-text reading and writing see only the final 40.
-2. **Three kinds of evidence, merged by rank.** BM25F catches exact terms, embeddings catch meaning, and Personalized PageRank catches what the topic builds on. Reciprocal Rank Fusion merges them without calibrating their scales. In our eval, adding the citation graph raised nDCG@100 by 0.051 (p = 0.032).
+2. **Three kinds of evidence, merged by rank.** BM25F catches exact terms, embeddings catch meaning, and Personalized PageRank catches what the topic builds on. Reciprocal Rank Fusion merges them without calibrating their scales. In our eval, adding the citation graph raised nDCG@100 by 0.050 (p = 0.014).
 3. **Selection is a set problem.** Choose 40 papers that are relevant, cover every sub-topic, and are not near-copies: a submodular objective with a proven 63% guarantee, or a DPP that maximizes the volume the set spans.
 4. **Evidence cards, not free text.** For each section, retrieve the best passages, pack them into a token budget, and extract claims with quotes. Code rejects any quote that is not in the source word for word.
 5. **A verify-and-revise loop.** The writer cites card ids; a checker labels each sentence supported, partial or unsupported; unsupported sentences are rewritten or deleted. References are built from metadata, so a made-up reference cannot happen.
@@ -32,7 +32,7 @@ The sample run in `samples/` used the topic "retrieval-augmented generation for 
 1. **plan** (0.001 s): the topic became 5 facets: the topic itself, plus methods, evaluation, applications, and limitations.
 2. **gather** (15.0 s): keyword searches on OpenAlex and citation snowballing found 373 candidate papers. The answers came from the HTTP cache, so most of this time is embedding 373 abstracts; live, the network wait makes it about 38 s.
 3. **rank** (0.10 s): BM25F, cosine with Rocchio, and PageRank scored all 373; RRF merged them; the top 150 became the shortlist.
-4. **screen** (0.03 s): the judge said "include" for 90 of 150; Bayes' rule, starting from the calibrated prior table, turned each verdict into a probability. The 40 picks landed between 0.14 and 0.21: the offline judge is barely better than chance (kappa 0.06), so its verdicts move the prior only a little.
+4. **screen** (0.03 s): the judge said "include" for 90 of 150; Bayes' rule, starting from the calibrated prior table, turned each verdict into a probability. The 40 picks landed between 0.14 and 0.21: the offline judge is barely better than chance (kappa 0.08), so its verdicts move the prior only a little.
 5. **select** (0.02 s): submodular lazy greedy picked 40 (objective value 1.85). The top picks include "Re-ranking and Late Interaction Drive Retrieval Quality: A Controlled Comparison of RAG Strategies for Scientific Question Answering".
 6. **approve**: skipped, because `auto_approve` defaults to true.
 7. **ingest** (54.7 s): 17 papers had arXiv PDFs; 23 fell back to their abstracts. The PDFs were read in memory and never stored. This step is slow on purpose: arXiv asks for one request every 3 seconds.
@@ -63,20 +63,20 @@ What the offline brain cannot do, and Claude would fix:
 
 6. **What does PageRank add over citation counts?** Citation counts are global popularity, from any field. Personalized PageRank starts its random walks at the strongest papers for this topic, so importance becomes topic-specific, and it finds foundational papers that use different words. It gave the largest significant gain in our eval.
 
-7. **How do you combine an LLM judge with retrieval scores?** Treat the judge as a noisy test with measured sensitivity and specificity. Start from a prior based on the paper's rank, and update it with Bayes' rule. A weak judge barely moves the prior, and a strong one moves it a lot. Our offline judge had kappa 0.06, and the math correctly mostly ignored it.
+7. **How do you combine an LLM judge with retrieval scores?** Treat the judge as a noisy test with measured sensitivity and specificity. Start from a prior based on the paper's rank, and update it with Bayes' rule. A weak judge barely moves the prior, and a strong one moves it a lot. Our offline judge had kappa 0.08, and the math correctly mostly ignored it.
 
 8. **Why is selection a set problem?** A paper's value depends on what else is chosen: the second paper on the same method adds less than the first. Top-k by score gives near-duplicates. A submodular objective rewards covering every facet and every part of the candidate space.
 
 9. **Prove the greedy bound.** For a monotone submodular F, the gap to the optimum after step i satisfies `gap(i+1) <= (1 - 1/k) gap(i)`, because the optimal set's items together could add at least the gap, and greedy took the largest single gain. After k steps the gap is at most `(1 - 1/k)^k <= 1/e` of the optimum, so greedy reaches at least 63%.
 
-10. **MMR, submodular or DPP?** MMR is a quick rule with no guarantee. Submodular lets you write down what "good set" means and gives a guarantee. DPP scores a whole set as volume, quality times diversity, but its greedy has no clean guarantee. In our eval DPP produced the most varied sets (mean pairwise cosine 0.78 vs 0.82), while recall differences were not significant.
+10. **MMR, submodular or DPP?** MMR is a quick rule with no guarantee. Submodular lets you write down what "good set" means and gives a guarantee. DPP scores a whole set as volume, quality times diversity, but its greedy has no clean guarantee. In our eval DPP produced the most varied sets (mean pairwise cosine 0.78 vs 0.83), while recall differences were not significant.
 
-11. **How do you evaluate selection without labels?** Use published surveys as answer keys. A survey's reference list is an expert's selection for a topic. Run the pipeline as if on the survey's publication date, exclude the survey itself, and measure recall of its references. We did this for 7 surveys in 6 fields, with bootstrap intervals and permutation tests.
+11. **How do you evaluate selection without labels?** Use published surveys as answer keys. A survey's reference list is an expert's selection for a topic. Run the pipeline as if on the survey's publication date, exclude the survey itself, and measure recall of its references. We did this for 8 surveys in 7 fields, with bootstrap intervals and permutation tests.
 
 12. **What are the limits of a survey as an answer key?** A survey does not cite every good paper, so precision is only a floor and recall is the trustworthy number. A survey's taste may differ from what a user wants. It rewards finding cited papers, not variety, so it cannot measure diversity. And with a handful of surveys, the intervals are wide.
 
 13. **How confident are you in your numbers?**
-    - **What is solid:** with 7 surveys, two improvements are significant (fusion over keywords alone, and adding PageRank), with p-values of 0.016 and 0.032.
+    - **What is solid:** with 8 surveys, two improvements are significant (fusion over keywords alone, and adding PageRank), with p-values of 0.008 and 0.014.
     - **What is not:** the Rocchio and selection-method differences are within noise.
     - **The caveat I'd state:** absolute recall is low (about 0.25 at 150), mainly because the offline planner's keyword queries are narrow. An LLM planner is the first thing I'd measure.
 
@@ -209,7 +209,7 @@ What the offline brain cannot do, and Claude would fix:
 
 44. **How would Claude change the results?**
     - **Better facets and keywords:** a bigger, better pool, so higher recall.
-    - **A real judge:** much higher kappa than the offline rules' 0.06.
+    - **A real judge:** much higher kappa than the offline rules' 0.08.
     - **Real writing:** sections named by meaning, real synthesis instead of stitched quotes, and more papers cited.
     - **Nothing to rebuild:** the evals and verification stay the same, so the comparison is fair.
 

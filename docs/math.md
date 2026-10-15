@@ -12,22 +12,22 @@ Sections 1 to 6 and 10 are **core**: know them cold. The rest are **bonus**.
 
 ## Results at a glance
 
-From the selection eval (`evals/results/selection-2026-10-15.md`): 7 published surveys from 6 fields. For each one, the pipeline ran as if on the survey's publication date, and the survey's own reference list served as the answer key. Values are means over surveys, with 95% bootstrap intervals in brackets.
+From the selection eval (`evals/results/selection-2026-10-15.md`): 8 published surveys from 7 fields. For each one, the pipeline ran as if on the survey's publication date, and the survey's own reference list served as the answer key. Values are means over surveys, with 95% bootstrap intervals in brackets.
 
 | Ranking | Recall@150 | nDCG@100 |
 |---|---|---|
-| OpenAlex's own order | 0.065 [0.032, 0.097] | 0.067 [0.035, 0.097] |
-| BM25F only | 0.080 [0.035, 0.131] | 0.054 [0.024, 0.093] |
-| Dense vectors only | 0.203 [0.177, 0.235] | 0.165 [0.123, 0.208] |
-| RRF of BM25F + dense | 0.186 [0.167, 0.212] | 0.129 [0.094, 0.167] |
-| ... + Personalized PageRank | 0.242 [0.196, 0.303] | 0.180 [0.131, 0.236] |
-| ... + Rocchio (full system) | 0.245 [0.192, 0.319] | 0.184 [0.134, 0.238] |
+| OpenAlex's own order | 0.059 [0.030, 0.090] | 0.064 [0.036, 0.091] |
+| BM25F only | 0.081 [0.042, 0.125] | 0.067 [0.032, 0.107] |
+| Dense vectors only | 0.205 [0.181, 0.232] | 0.184 [0.134, 0.234] |
+| RRF of BM25F + dense | 0.188 [0.170, 0.212] | 0.150 [0.103, 0.203] |
+| ... + Personalized PageRank | 0.241 [0.200, 0.296] | 0.200 [0.144, 0.260] |
+| ... + Rocchio (full system) | 0.245 [0.198, 0.311] | 0.204 [0.147, 0.265] |
 
 | Comparison (nDCG@100) | Mean difference | p-value |
 |---|---|---|
-| RRF of text signals vs BM25F only | +0.074 | 0.016 |
-| adding PageRank | +0.051 | 0.032 |
-| adding Rocchio | +0.004 | 0.45 |
+| RRF of text signals vs BM25F only | +0.083 | 0.008 |
+| adding PageRank | +0.050 | 0.014 |
+| adding Rocchio | +0.004 | 0.40 |
 
 Four honest readings:
 - **Biggest gains.** The citation graph (PageRank) and the vectors are the big wins. Both gains are statistically real.
@@ -86,7 +86,7 @@ Defaults: `alpha = 1`, `beta = 0.75`, `gamma = 0`, and R = the top 20 papers by 
 
 **Interview questions.**
 - *Why normalize vectors?* Cosine becomes a dot product, so one matrix multiply scores everything, and long texts are not favored by vector length.
-- *What can go wrong with pseudo-relevance feedback?* Query drift. Keep `alpha` dominant, keep R small, and measure: here Rocchio added +0.004 nDCG with p = 0.45, so we cannot claim it helps on this eval.
+- *What can go wrong with pseudo-relevance feedback?* Query drift. Keep `alpha` dominant, keep R small, and measure: here Rocchio added +0.004 nDCG with p = 0.40, so we cannot claim it helps on this eval.
 - *Why did dense vectors beat keywords 2.5 to 1 on recall?* Surveys cite papers that describe the same idea in different words; vectors capture meaning, while keywords need the exact words.
 
 ## 3. Personalized PageRank (core)
@@ -109,7 +109,7 @@ pi = (1 - alpha) * v + alpha * P^T pi
 
 **Where it lives.** `ranking/pagerank.py`; `funnel.compute_signals` builds the edges from each candidate's reference list. `test_pagerank_sums_to_one_and_matches_direct_solve` runs over 15 random graphs.
 
-**Our numbers.** Adding PageRank to the text signals raised recall@150 from 0.186 to 0.242 and nDCG@100 by +0.051 (p = 0.032): the largest statistically supported gain in the eval.
+**Our numbers.** Adding PageRank to the text signals raised recall@150 from 0.188 to 0.241 and nDCG@100 by +0.050 (p = 0.014): the largest statistically supported gain in the eval.
 
 **Interview questions.**
 - *What does `alpha` control?* How far the reader wanders before jumping back. A high `alpha` gives longer, more global walks; a low one stays near the seeds. It also sets the convergence speed (error shrinks like `alpha^t`).
@@ -131,7 +131,7 @@ Lists used: BM25F and dense for every facet, each with weight `1 / F`, plus Page
 **Why it works.**
 - **Only ranks matter.** Any increasing change to a list's scores (multiply by 10 and add 3, take the exponential) leaves its ranks, and therefore RRF, unchanged. `test_rrf_only_depends_on_ranks_not_score_scale` checks this. So BM25 points, cosines and PageRank mass, which live on unrelated scales, can be combined without calibration.
 - **`k = 60` flattens the top.** Rank 1 versus rank 2 differ by only `1/61 - 1/62`, about 0.0003, so small disagreements at the top do not dominate, and agreement across lists wins. Cormack, Clarke and Buettcher (2009) found 60 robust across collections.
-- **The honest limit.** Equal weights let a weak list dilute a strong one. In our eval, dense alone (nDCG 0.165) beat the BM25F + dense fusion (0.129), because BM25F was weak with the offline planner's keywords. The fix is to tune the weights, or learn them from labels.
+- **The honest limit.** Equal weights let a weak list dilute a strong one. In our eval, dense alone (nDCG 0.184) beat the BM25F + dense fusion (0.150), because BM25F was weak with the offline planner's keywords. The fix is to tune the weights, or learn them from labels.
 
 **Interview questions.**
 - *Why not average normalized scores?* Score shapes differ: BM25 is unbounded and heavy-tailed, while cosines bunch together in a narrow band. Min-max normalization lets one outlier squash everything else. RRF avoids the problem entirely.
@@ -159,8 +159,8 @@ The prior comes from the calibration table: the share of relevant papers at each
 - **Clipping.** Probabilities and rates are clipped to `[1e-6, 1 - 1e-6]`, so the update never divides by zero.
 
 **Our numbers.**
-- **The offline judge is weak.** Its sensitivity is 0.69 and specificity 0.46. That gives LR+ of about 1.28 and LR- of about 0.67, and Cohen's kappa of 0.06, barely above chance. The math correctly gives it little weight.
-- **The calibration table is flat.** It shows 0.11 (ranks 1-10), 0.14 (11-25), 0.15 (26-50), 0.17 (51-100) and 0.08 (101+). So the straight-line fallback (0.6 at the top) was about five times too confident. Measuring beats assuming.
+- **The offline judge is weak.** Its sensitivity is 0.71 and specificity 0.46. That gives LR+ of about 1.32 and LR- of about 0.63, and Cohen's kappa of 0.08, barely above chance. The math correctly gives it little weight.
+- **The calibration table is flat.** It shows 0.15 (ranks 1-10), 0.13 (11-25), 0.18 (26-50), 0.19 (51-100) and 0.08 (101+). So the straight-line fallback (0.6 at the top) was about four times too confident. Measuring beats assuming.
 
 **Interview questions.**
 - *Why not trust the LLM's yes or no?* Because it has error rates. Combining its verdict with retrieval evidence beats either alone, and Bayes says exactly how much weight each deserves.
@@ -190,7 +190,7 @@ F(S) = sum over facets f of  w_f * log(1 + sum over d in S of  p_d * r_{d,f})
 - **Lazy greedy picks the same set with much less work.** Gains only shrink as the set grows, so a gain computed earlier is an upper bound on today's. Keep all candidates in a max-heap of old gains, pop the top, and recompute its gain. If it still beats every other upper bound, it is the true best, and nobody else needs rechecking (Minoux 1978). `test_lazy_greedy_picks_exactly_what_plain_greedy_picks` checks 25 instances.
 - **The budgeted version** (fit passages into a token budget). Greedy on gain-per-token alone can fail badly: it may prefer many cheap, mediocre chunks over one great one. Taking the better of that greedy result and the best single chunk that fits is proven to reach `1/2 (1 - 1/e)` of the optimum.
 
-**Our numbers.** Recall@40 was 0.132 for submodular versus 0.144 for plain top-k. The difference of -0.012 has p = 1.0, so there's no evidence of a difference either way. Every method covered all facets.
+**Our numbers.** Recall@40 was 0.150 for submodular versus 0.164 for plain top-k. The difference of -0.014 has p = 0.50, so there's no evidence of a difference either way. Every method covered all facets.
 
 The honest reading: a survey's reference list rewards finding the papers it cites, not variety, so this eval cannot see what diversity buys. Measuring coverage properly needs labels per sub-topic, or a human judge.
 
@@ -211,7 +211,7 @@ The honest reading: a survey's reference list rewards finding the papers it cite
 
 **The formula.** `next = argmax over d of [ lambda * rel(d) - (1 - lambda) * max over s in S of sim(d, s) ]`, with `lambda = 0.7`.
 
-**Why it is only a baseline.** MMR is a rule, not the maximizer of any fixed set objective, so there is no guarantee about how good its set is. It is simple and fast, which is why it is the standard baseline. In our eval: recall@40 0.141, mean pairwise cosine 0.814.
+**Why it is only a baseline.** MMR is a rule, not the maximizer of any fixed set objective, so there is no guarantee about how good its set is. It is simple and fast, which is why it is the standard baseline. In our eval: recall@40 0.154, mean pairwise cosine 0.814.
 
 **Interview question.** *MMR or submodular?* MMR when you need something quick and explainable; a submodular objective when you want to state what "good set" means (coverage, balance) and get a guarantee.
 
@@ -235,7 +235,7 @@ P(S) is proportional to det(L_S)
 - **No `1 - 1/e` here.** `log det` is submodular but **not monotone**: an item with `d_j^2 < 1` lowers it. So the greedy guarantee from section 6 does not carry over. DPP greedy is a strong heuristic.
 - **A size limit.** `K` has rank at most 384 (the embedding size), so no more than 384 items can have a positive determinant. That's fine for 40.
 
-**Our numbers.** DPP picked the most varied sets: mean pairwise cosine 0.779, versus 0.825 for top-k. Its recall@40 was 0.130, versus 0.144 for top-k; the difference has p = 0.57, so it could easily be luck.
+**Our numbers.** DPP picked the most varied sets: mean pairwise cosine 0.777, versus 0.828 for top-k. Its recall@40 was 0.151, versus 0.164 for top-k; the difference has p = 0.57, so it could easily be luck.
 
 **Interview questions.**
 - *Why `exp(theta * p)` for quality?* It makes quality enter the determinant multiplicatively. `theta` sets the trade-off: a higher `theta` favors relevance, a lower one favors diversity.
@@ -277,14 +277,14 @@ Then take the eigenvectors of the k smallest eigenvalues, scale each row to leng
 
 **MRR.** `1 / position of the first hit`.
 
-**The bootstrap.** We have 7 survey scores and want a range for the true mean. Resample the 7 scores with replacement 10,000 times, take each resample's mean, and keep the middle 95% of those means. That is the confidence interval. `test_bootstrap_ci_covers_true_mean_about_95_percent_of_the_time` checks the coverage.
+**The bootstrap.** We have 8 survey scores and want a range for the true mean. Resample the 8 scores with replacement 10,000 times, take each resample's mean, and keep the middle 95% of those means. That is the confidence interval. `test_bootstrap_ci_covers_true_mean_about_95_percent_of_the_time` checks the coverage.
 
-**The paired permutation (sign-flip) test.** To ask whether A beats B, take the 7 per-survey differences A - B. If A and B were equally good, each difference would be equally likely to be positive or negative. Flip signs at random 10,000 times; the p-value is the share of flips whose mean difference is at least as large as the real one. Pairing matters: some surveys are easy and some hard, and comparing within each survey cancels that out.
+**The paired permutation (sign-flip) test.** To ask whether A beats B, take the 8 per-survey differences A - B. If A and B were equally good, each difference would be equally likely to be positive or negative. Flip signs at random 10,000 times; the p-value is the share of flips whose mean difference is at least as large as the real one. Pairing matters: some surveys are easy and some hard, and comparing within each survey cancels that out.
 
 **Cohen's kappa.** `(observed agreement - chance agreement) / (1 - chance agreement)`: 0 means no better than chance, 1 means perfect.
 
 **Caveats.**
-- With 7 surveys, the intervals are wide.
+- With 8 surveys, the intervals are wide.
 - Survey references are an incomplete answer key, so recall is the trustworthy number and precision is only a floor.
 - OpenAlex's own ordering already mixes in citation counts.
 
