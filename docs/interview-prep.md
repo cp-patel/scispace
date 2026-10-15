@@ -227,6 +227,96 @@ Each section works like this:
 
 ## 5. The production shell
 
+### What "production shell" means
+
+The ranking math and the writing steps are the *core* of the project. The **production shell** is everything around that core that lets it run as a real service that many people can use, day after day, without someone watching it.
+
+Why it's needed: one research job is slow and fragile.
+- **It takes minutes.** The job reads dozens of PDFs, and arXiv allows only one request every 3 seconds.
+- **It depends on outside services** (OpenAlex, arXiv, the Claude API), and any of them can be slow, busy, or down.
+- **It can cost real money** in LLM calls.
+- **The machine running it can crash** halfway through.
+
+A script on a laptop can ignore all of this. A service can't.
+
+**An analogy: a busy restaurant kitchen.**
+- Orders go on a ticket rail instead of being shouted at one cook. That's the **queue**.
+- A cook who takes a ticket keeps it only while they're actively working on it. If they walk out, the ticket goes back on the rail. That's the **lease**.
+- Each finished stage of a dish is written on the ticket, so the next cook doesn't start over. That's the **checkpoint**.
+- When the fish supplier doesn't answer, you call again in a minute instead of giving up. That's **retries**.
+- The kitchen has a spending limit per order. That's the **budget**.
+
+The shell solves four problems. Each one below has the problem, the fix, and how the fix works.
+
+### Problem 1: the work is too slow to do while the user waits
+
+**Fix: a job queue.** The API never does the slow work itself.
+1. When you ask for a review, the API saves a row in a Postgres table called `jobs` with status `queued`.
+2. It answers right away with a job id, so you never wait minutes for a reply.
+3. Separate **worker** processes pick up queued jobs and do the work in the background.
+4. You check progress with `GET /v1/jobs/{id}`.
+
+**How two workers avoid grabbing the same job.** Each worker claims a job with one SQL statement that uses `FOR UPDATE SKIP LOCKED`:
+- `FOR UPDATE` locks the row the worker picked.
+- `SKIP LOCKED` tells every other worker to skip locked rows instead of waiting for them.
+
+So two workers that look at the same moment always get different jobs. To handle more traffic, you just start more workers.
+
+**Why Postgres and not a separate queue system** (like SQS or Kafka): the project already needs Postgres for papers and results. Using it for the queue means one less system to run, and the queue and the results can change together in one transaction. A dedicated queue only becomes worth it at very high job rates, and research jobs are few and slow.
+
+### Problem 2: a worker can crash halfway through a job
+
+Four pieces work together here.
+
+- **Lease.** Claiming a job also sets a deadline, `lease_until`, 120 seconds ahead. It means "this job is mine until then".
+- **Heartbeat.** While working, the worker pushes that deadline forward every 30 seconds, like a "still alive" ping. A crashed worker stops pinging, so its lease runs out.
+- **Reaper.** Every worker, between jobs, looks for running jobs whose lease has run out. It puts them back in the queue and counts one attempt. After 3 attempts, the job is marked failed with a clear error. That way a job that crashes every worker it touches can't loop forever.
+- **Checkpoints.** LangGraph saves the job's progress to Postgres after every step, keyed by the job id. When another worker picks the job up, it continues from the last finished step instead of starting over, like a save point in a video game.
+
+One more rule makes this safe: **every step is safe to run twice.** The technical word is *idempotent*.
+- A crash can happen after a step did its work but before its checkpoint was saved, so that step may run again.
+- Every database write is "insert, or update if it already exists", keyed by job and item.
+- A paper that already has chunks is not downloaded again.
+
+Running a step a second time leaves the same result as running it once.
+
+**Incident walk-through: a worker dies mid-job.**
+1. The job stays `running`, but nobody renews its lease.
+2. Within about 2 minutes the lease expires. Any worker's reaper moves the job back to `queued` and counts one attempt.
+3. Another worker claims it, finds the checkpoints, and continues from the last finished step. The crash test kills a worker during `outline` and checks that `gather` and `ingest` don't run again.
+4. If the same job keeps crashing workers, it fails after 3 attempts with a clear error.
+
+### Problem 3: outside services fail, slow down, or limit you
+
+- **Retries.** Some failures fix themselves: a `429` ("too many requests"), a `5xx` (the server's own error), or a dropped connection. For those, the client waits and tries again, up to 5 tries.
+  - **Backoff.** Each wait is longer than the last: up to 1, 2, 4, 8... seconds, capped at 30.
+  - **Jitter.** The actual wait is a random time between 0 and that limit. Without the randomness, many clients that failed together would all retry at the same instant and overload the service again.
+  - **What is never retried.** Other `4xx` errors (like "not found" or "bad request") won't fix themselves, so they fail at once.
+  - **`Retry-After`.** If the service sends this header, the client waits exactly that long.
+- **Rate limits.** The client spaces out its own requests: at most 8 per second to OpenAlex (its limit is 10), and one every 3 seconds to arXiv, on a single connection (arXiv's published rule).
+- **Disk cache.** Answers can be saved to disk, so asking the same question again is instant and free. This matters because OpenAlex now charges per call beyond a small daily allowance.
+
+### Problem 4: you need to control cost and see what's happening
+
+- **Budget.** Every LLM call records its tokens and dollar cost against its job. Once a job passes its budget ($10 by default), it stops with a clear error, so one bad job can't run up a big bill.
+- **Observability** means being able to see inside the running system:
+  - **Logs:** one JSON line per event, tagged with the job id and step, so you can filter everything one job did.
+  - **Metrics:** counters a dashboard can chart (Prometheus): jobs by status, time per step, LLM tokens and cost, errors from outside services, and queue length.
+  - **Trace:** `GET /v1/jobs/{id}/trace` lists every step of one job with its time, cost, and counts.
+- **Cancel and pause.** Before each step runs, the job's status is checked. A canceled job stops at the next step boundary. A job waiting for human approval frees its worker instead of holding it.
+
+### And how it's shipped: Docker
+
+- **One command starts everything.** `docker compose up` starts three containers: Postgres (with pgvector), the API, and the worker.
+- **Fast, offline starts.** The embedding model is built into the image, so a container starts quickly and never downloads anything while running.
+- **Self-healing.** If the API or worker crashes, Docker restarts it.
+
+### How to say it in the interview
+
+"The API only writes a job row and returns. Workers claim jobs from Postgres with `SKIP LOCKED`, hold a lease they renew with a heartbeat, and LangGraph checkpoints every step, so if a worker dies, the lease expires and another worker resumes from the last step. Every step is idempotent, so a rerun is safe. Calls to outside services retry with backoff and jitter under rate limits, and every job has a cost budget, logs, metrics, and a trace."
+
+### Quick reference
+
 | Piece | What it does | Why |
 |---|---|---|
 | `SKIP LOCKED` queue | Workers claim jobs from a Postgres table. | No second system to run; transactions cover queue and results together. |
@@ -239,12 +329,6 @@ Each section works like this:
 | Budget | Each LLM call's cost is logged; a job stops past its budget ($10 default). | Cost can't run away. |
 | Observability | JSON logs tagged by job and step, Prometheus metrics, a per-job trace. | You can see where time and money go. |
 | Docker | API, worker and Postgres in one compose file; the embedding model is baked into the image. | Containers start fast and never download at runtime. |
-
-**Incident walk-through: a worker dies mid-job.**
-1. The job stays `running`, but nobody renews its lease.
-2. Within about 2 minutes the lease expires. Any worker's reaper moves the job back to `queued` and counts one attempt.
-3. Another worker claims it, finds the checkpoints, and continues from the last finished step. The crash test kills a worker during `outline` and checks that `gather` and `ingest` don't run again.
-4. If the same job keeps crashing workers, it fails after 3 attempts with a clear error.
 
 ## 6. What the evals say
 
