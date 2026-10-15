@@ -70,6 +70,7 @@ Set `HTTP_CACHE_DIR=.http-cache` so repeated OpenAlex calls are free.
 
 ## Documentation
 
+- [docs/interview-prep.md](docs/interview-prep.md): the one-stop interview prep: what to say, the math, results, stories, weak spots, and a 45-question drill
 - [docs/architecture.md](docs/architecture.md): how it works, why, and how it grows to 200 million papers
 - [docs/math.md](docs/math.md): every algorithm, with proofs, tests, and our measured results
 - [docs/study-guide.md](docs/study-guide.md): a five-day plan, a traced run, and 45 interview questions with answers
