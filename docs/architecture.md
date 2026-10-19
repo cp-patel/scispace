@@ -10,6 +10,8 @@ The core idea is a **funnel**: cheap methods look at many papers, expensive meth
 
 ![Research assistant architecture](architecture-rag.svg)
 
+For an end-to-end walkthrough of discovery, citation ranking, selection, evidence checks, and the production shell, see the [detailed architecture diagram](architecture-rag-detailed.svg).
+
 The top half is the **indexing pipeline**: it gets papers into the store. The bottom half is the **query side**: it answers one topic.
 
 - **Papers** come from OpenAlex (a free catalog of about 250 million papers with titles, abstracts, and citation links) and arXiv (free full text). `sources/openalex.py` rebuilds each abstract from OpenAlex's word-position format. `sources/arxiv.py` downloads PDFs at most once every 3 seconds, the rate arXiv asks for.

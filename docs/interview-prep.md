@@ -141,7 +141,7 @@ v = top 50 papers by text score (sums to 1); dangling papers send their mass bac
 - **Why it converges.** One step shrinks any error by a factor of α (a contraction), so there is exactly one answer. About 140 steps reach an error of 1e-10.
 - **Why "personalized".** Global citation counts reward famous papers from any field. Restarting at topic seeds makes importance topic-specific.
 
-**Our number:** the largest proven gain. Recall@150 rose from 0.188 to 0.241, and nDCG@100 by +0.050 (p = 0.014).
+**Our number:** the largest proven gain. Recall@150 rose from 0.188 to 0.241, and nDCG@100 improved by 0.050 (p = 0.014).
 
 ### Reciprocal Rank Fusion (core)
 
@@ -725,6 +725,10 @@ One strong model (Claude Opus 5) for everything by default, with effort tuned pe
 - **LSH:** has clean theory, but needs many tables for high recall.
 - **At scale:** IVF-PQ or a disk-based graph, with a full-vector re-rank.
 
+**Why prioritize recall in retrieval?** This is an early funnel stage: if a useful paper is missed here, later ranking and screening cannot recover it. We accept some extra candidates, then improve precision by merging signals, judging the shortlist and selecting the final set. In the survey eval, recall is also the safer headline metric: cited papers are known relevant examples, but an uncited paper is not necessarily irrelevant, so precision would be misleadingly low.
+
+**Recall definition:** `TP / (TP + FN)`, where TP is a relevant paper retrieved and FN is a relevant paper missed. It measures how many of the known relevant papers we found; here, a false negative is a survey-cited paper absent from the retrieved top 150.
+
 </details>
 
 <details>
@@ -812,5 +816,15 @@ The Model Context Protocol is a standard way for AI assistants to call tools. Th
 - **Measure the planner first:** recall is limited by the pool.
 - **Collect a small set of human labels**, for both relevance and claim support.
 - **Test resilience in staging:** run the system under failure injection, such as killing workers and throttling APIs.
+
+</details>
+
+<details>
+<summary><b>46. How does the citation network work? Do you use NetworkX or Neo4j?</b></summary>
+
+- **It is implemented in the current code.** OpenAlex supplies each paper's references and citing works. Citation snowballing adds linked papers to the candidate pool, capped at 3,000.
+- **The ranking graph is built in memory for that pool.** A directed edge `A → B` means paper A cites paper B. Edges to papers outside the pool are omitted, because PageRank only scores candidates in the pool.
+- **Personalized PageRank starts from the strongest text-ranked papers**, follows their references, and periodically jumps back to those seeds. Its scores are added as a ranking signal through Reciprocal Rank Fusion.
+- **No Neo4j or NetworkX is used.** The project stores edges as a compact NumPy array and computes PageRank directly. That is enough for a temporary graph of a few thousand candidates. Neo4j would make sense for a persistent, much larger graph with repeated multi-hop queries; NetworkX could be a convenient library alternative for in-memory graph algorithms.
 
 </details>
